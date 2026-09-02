@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Ngo" ADD COLUMN "mfaEnabled" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Ngo" ADD COLUMN "sharePointEnabled" BOOLEAN NOT NULL DEFAULT false;

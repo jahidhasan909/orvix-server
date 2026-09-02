@@ -29,8 +29,12 @@ model User {
   assignedSiteIds    String[] @default([])
   ngoId         String?
   ngo           Ngo?      @relation(fields: [ngoId], references: [id], onDelete: SetNull)
+  phone         String?
+  status        String    @default("active")
+  twoFactorEnabled Boolean @default(false)
   sessions      Session[]
   accounts      Account[]
+  twofactors    TwoFactor[]
   attendance    AttendanceRecord[]
   leaveRequests LeaveRequest[]
   notifications Notification[]
@@ -87,13 +91,37 @@ model Verification {
   updatedAt  DateTime? @updatedAt
 }
 
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified                Boolean   @default(false)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+
+  @@index([secret])
+  @@index([userId])
+}
+
 model Ngo {
   id              String   @id @default(cuid())
   name            String
   code            String?  @unique
+  category        String
+  categoryOther   String?
+  description     String?
+  logoUrl         String?
+  registrationNo  String?
+  contactEmail    String
+  contactPhone    String
+  address         String
   country         String?
   status          String   @default("active")
   enabledModules  String[] @default([])
+  mfaEnabled      Boolean  @default(false)
+  sharePointEnabled Boolean @default(false)
   timezone        String?
   currency        String?
   createdAt       DateTime @default(now())
@@ -117,6 +145,9 @@ model Ngo {
   activities      Activity[]
   dataEntries     DataEntryRecord[]
   notifications   Notification[]
+
+  @@index([status])
+  @@index([category])
 }
 
 model Project {
