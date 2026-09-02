@@ -1,0 +1,403 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator nextClient {
+  provider = "prisma-client-js"
+  output   = "../../orvix/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          String    @default("platform_admin")
+  designation   String?
+  extraPermissions   String[] @default([])
+  revokedPermissions String[] @default([])
+  assignedProjectIds String[] @default([])
+  assignedSiteIds    String[] @default([])
+  ngoId         String?
+  ngo           Ngo?      @relation(fields: [ngoId], references: [id], onDelete: SetNull)
+  sessions      Session[]
+  accounts      Account[]
+  attendance    AttendanceRecord[]
+  leaveRequests LeaveRequest[]
+  notifications Notification[]
+  activities    Activity[]
+  dataEntries   DataEntryRecord[]
+
+  @@unique([email])
+  @@index([ngoId])
+  @@index([role])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  issuer                String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([issuer, accountId])
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+}
+
+model Ngo {
+  id              String   @id @default(cuid())
+  name            String
+  code            String?  @unique
+  country         String?
+  status          String   @default("active")
+  enabledModules  String[] @default([])
+  timezone        String?
+  currency        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  users           User[]
+  projects        Project[]
+  sites           Site[]
+  inventoryItems  InventoryItem[]
+  stockTransactions StockTransaction[]
+  stockTransfers  StockTransfer[]
+  stockAdjustments StockAdjustment[]
+  suppliers       Supplier[]
+  purchaseOrders  PurchaseOrder[]
+  purchases       Purchase[]
+  receivingRecords ReceivingRecord[]
+  resourceRequests ResourceRequest[]
+  distributions   DistributionRecord[]
+  attendance      AttendanceRecord[]
+  leaveRequests   LeaveRequest[]
+  documents       Document[]
+  activities      Activity[]
+  dataEntries     DataEntryRecord[]
+  notifications   Notification[]
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  name      String
+  status    String   @default("active")
+  manager   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sites     Site[]
+  activities Activity[]
+
+  @@index([ngoId])
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name      String
+  location  String?
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ngoId])
+  @@index([projectId])
+}
+
+model InventoryItem {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  sku       String
+  name      String
+  quantity  Int      @default(0)
+  unit      String?
+  warehouse String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ngoId])
+  @@unique([ngoId, sku])
+}
+
+model StockTransaction {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  type      String
+  sku       String
+  quantity  Int
+  reference String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+}
+
+model StockTransfer {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  sku       String
+  quantity  Int
+  from      String
+  to        String
+  status    String   @default("pending")
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+}
+
+model StockAdjustment {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  sku       String
+  quantity  Int
+  reason    String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  name      String
+  contact   String?
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ngoId])
+}
+
+model PurchaseOrder {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  supplier  String
+  status    String   @default("open")
+  total     Decimal  @default(0) @db.Decimal(12, 2)
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  purchases Purchase[]
+  receiving ReceivingRecord[]
+
+  @@index([ngoId])
+}
+
+model Purchase {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  orderId   String?
+  order     PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  amount    Decimal  @default(0) @db.Decimal(12, 2)
+  status    String   @default("posted")
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+}
+
+model ReceivingRecord {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  orderId   String?
+  order     PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  sku       String
+  quantity  Int
+  status    String   @default("accepted")
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+}
+
+model ResourceRequest {
+  id           String   @id @default(cuid())
+  ngoId        String
+  ngo          Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  requestedBy  String
+  siteId       String?
+  item         String
+  quantity     Int
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([ngoId])
+}
+
+model DistributionRecord {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  siteId    String?
+  item      String
+  quantity  Int
+  issuedBy  String?
+  status    String   @default("issued")
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+}
+
+model AttendanceRecord {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  worker    String
+  date      DateTime @db.Date
+  status    String
+  siteId    String?
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+  @@index([userId])
+}
+
+model LeaveRequest {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  worker    String
+  type      String
+  days      Int
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ngoId])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  ngoId     String
+  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  name      String
+  category  String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+}
+
+model Activity {
+  id         String   @id @default(cuid())
+  ngoId      String
+  ngo        Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  siteId     String?
+  name       String
+  assigneeId String?
+  assignee   User?    @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  status     String   @default("planned")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([ngoId])
+}
+
+model DataEntryRecord {
+  id         String   @id @default(cuid())
+  ngoId      String
+  ngo        Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  form       String
+  records    Int      @default(0)
+  status     String   @default("open")
+  assigneeId String?
+  assignee   User?    @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([ngoId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  ngoId     String?
+  ngo       Ngo?     @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  unread    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  target    String?
+  at        DateTime @default(now())
+}
+
+model PlatformSettings {
+  id                    String  @id @default("platform")
+  orgName               String  @default("ORVIX")
+  supportEmail          String?
+  sessionDays           Int     @default(7)
+  mfaRequiredForAdmins  Boolean @default(false)
+}
