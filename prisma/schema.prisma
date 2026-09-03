@@ -180,6 +180,7 @@ model Ngo {
   projects        Project[]
   sites           Site[]
   inventoryItems  InventoryItem[]
+  inventoryCategories InventoryCategory[]
   stockTransactions StockTransaction[]
   stockTransfers  StockTransfer[]
   stockAdjustments StockAdjustment[]
@@ -241,73 +242,134 @@ model Site {
   @@index([status])
 }
 
+model InventoryCategory {
+  id          String   @id @default(cuid())
+  ngoId       String
+  ngo         Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       InventoryItem[]
+
+  @@unique([ngoId, name])
+  @@index([ngoId])
+}
+
 model InventoryItem {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  sku       String
-  name      String
-  quantity  Int      @default(0)
-  unit      String?
-  warehouse String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  ngoId       String
+  ngo         Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  sku         String
+  name        String
+  description String?
+  categoryId  String?
+  category    InventoryCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  unit        String?  @default("pcs")
+  quantity    Int      @default(0)
+  minLevel    Int      @default(0)
+  status      String   @default("active")
+  projectId   String?
+  siteId      String?
+  warehouse   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  transactions StockTransaction[]
+  adjustments  StockAdjustment[]
+  receiving    ReceivingRecord[]
+  requests     ResourceRequest[]
+  distributions DistributionRecord[]
+  transfers    StockTransfer[]
 
   @@index([ngoId])
+  @@index([categoryId])
+  @@index([status])
   @@unique([ngoId, sku])
 }
 
 model StockTransaction {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  type      String
-  sku       String
-  quantity  Int
-  reference String?
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  ngoId           String
+  ngo             Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  itemId          String?
+  item            InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  type            String
+  sku             String
+  quantity        Int
+  quantityBefore  Int      @default(0)
+  quantityAfter   Int      @default(0)
+  unitCost        Decimal? @db.Decimal(12, 2)
+  totalCost       Decimal? @db.Decimal(12, 2)
+  supplierId      String?
+  workerId        String?
+  projectId       String?
+  siteId          String?
+  reference       String?
+  notes           String?
+  createdBy       String?
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   @@index([ngoId])
+  @@index([itemId])
+  @@index([type])
+  @@index([date])
 }
 
 model StockTransfer {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  sku       String
-  quantity  Int
-  from      String
-  to        String
-  status    String   @default("pending")
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  ngoId      String
+  ngo        Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  itemId     String?
+  item       InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  sku        String
+  quantity   Int
+  from       String
+  to         String
+  fromSiteId String?
+  toSiteId   String?
+  status     String   @default("completed")
+  notes      String?
+  createdBy  String?
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@index([ngoId])
 }
 
 model StockAdjustment {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  sku       String
-  quantity  Int
-  reason    String?
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  ngoId          String
+  ngo            Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  itemId         String?
+  item           InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  sku            String
+  quantity       Int
+  quantityBefore Int      @default(0)
+  quantityAfter  Int      @default(0)
+  reason         String?
+  createdBy      String?
+  date           DateTime @default(now())
+  createdAt      DateTime @default(now())
 
   @@index([ngoId])
 }
 
 model Supplier {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  name      String
-  contact   String?
-  category  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  ngoId      String
+  ngo        Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  name       String
+  contact    String?
+  email      String?
+  phone      String?
+  address    String?
+  category   String?
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  receiving  ReceivingRecord[]
 
   @@index([ngoId])
 }
@@ -343,46 +405,76 @@ model Purchase {
 }
 
 model ReceivingRecord {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  orderId   String?
-  order     PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  sku       String
-  quantity  Int
-  status    String   @default("accepted")
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  ngoId      String
+  ngo        Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  orderId    String?
+  order      PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  itemId     String?
+  item       InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  sku        String
+  quantity   Int
+  unitCost   Decimal? @db.Decimal(12, 2)
+  totalCost  Decimal? @db.Decimal(12, 2)
+  projectId  String?
+  siteId     String?
+  reference  String?
+  notes      String?
+  createdBy  String?
+  status     String   @default("accepted")
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@index([ngoId])
+  @@index([itemId])
 }
 
 model ResourceRequest {
-  id           String   @id @default(cuid())
-  ngoId        String
-  ngo          Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  requestedBy  String
-  siteId       String?
-  item         String
-  quantity     Int
-  status       String   @default("pending")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  ngoId         String
+  ngo           Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  requestedBy   String
+  requestedById String?
+  itemId        String?
+  inventoryItem InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  item          String
+  quantity      Int
+  projectId     String?
+  siteId        String?
+  reason        String?
+  notes         String?
+  status        String   @default("pending")
+  decisionNote  String?
+  decidedBy     String?
+  issuedAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([ngoId])
+  @@index([status])
+  @@index([itemId])
 }
 
 model DistributionRecord {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  siteId    String?
-  item      String
-  quantity  Int
-  issuedBy  String?
-  status    String   @default("issued")
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  ngoId         String
+  ngo           Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  itemId        String?
+  inventoryItem InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  workerId      String?
+  projectId     String?
+  siteId        String?
+  item          String
+  quantity      Int
+  issuedBy      String?
+  reason        String?
+  notes         String?
+  requestId     String?
+  status        String   @default("issued")
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now())
 
   @@index([ngoId])
 }
