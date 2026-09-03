@@ -23,6 +23,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   role          String    @default("platform_admin")
   designation   String?
+  designationOther String?
   extraPermissions   String[] @default([])
   revokedPermissions String[] @default([])
   assignedProjectIds String[] @default([])
@@ -30,7 +31,11 @@ model User {
   ngoId         String?
   ngo           Ngo?      @relation(fields: [ngoId], references: [id], onDelete: SetNull)
   phone         String?
+  employeeId    String?
+  address       String?
+  joiningDate   DateTime?
   status        String    @default("active")
+  mfaEnabled    Boolean   @default(false)
   twoFactorEnabled Boolean @default(false)
   sessions      Session[]
   accounts      Account[]
@@ -44,6 +49,7 @@ model User {
   @@unique([email])
   @@index([ngoId])
   @@index([role])
+  @@index([ngoId, employeeId])
 }
 
 model Session {
