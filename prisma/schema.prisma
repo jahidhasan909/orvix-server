@@ -170,6 +170,8 @@ model Ngo {
   enabledModules  String[] @default([])
   mfaEnabled      Boolean  @default(false)
   sharePointEnabled Boolean @default(false)
+  sharePointSiteUrl String?
+  sharePointLibrary String?
   timezone        String?
   currency        String?
   createdAt       DateTime @default(now())
@@ -201,34 +203,42 @@ model Ngo {
 }
 
 model Project {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  name      String
-  status    String   @default("active")
-  manager   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sites     Site[]
-  activities Activity[]
+  id          String    @id @default(cuid())
+  ngoId       String
+  ngo         Ngo       @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  manager     String?
+  status      String    @default("active")
+  startDate   DateTime? @db.Date
+  endDate     DateTime? @db.Date
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  sites       Site[]
+  activities  Activity[]
 
   @@index([ngoId])
+  @@index([status])
 }
 
 model Site {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  name      String
-  location  String?
-  status    String   @default("active")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(cuid())
+  ngoId       String
+  ngo         Ngo       @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name        String
+  location    String?
+  description String?
+  status      String    @default("active")
+  startDate   DateTime? @db.Date
+  endDate     DateTime? @db.Date
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([ngoId])
   @@index([projectId])
+  @@index([status])
 }
 
 model InventoryItem {
