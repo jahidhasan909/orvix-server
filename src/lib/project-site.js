@@ -111,6 +111,53 @@ export function parseWorkerIds(body) {
   return [...new Set(body.workerIds.map((id) => asString(id)).filter(Boolean))];
 }
 
+export function asIdList(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((id) => String(id).trim()).filter(Boolean))];
+  }
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return asIdList(parsed);
+    } catch {
+      return [...new Set(value.split(",").map((id) => id.trim()).filter(Boolean))];
+    }
+  }
+  return [];
+}
+
+export async function scopedAssignmentIds(prisma, ngoId, projectIds, siteIds) {
+  const requestedProjects = asIdList(projectIds);
+  const requestedSites = asIdList(siteIds);
+
+  const [projects, sites] = await Promise.all([
+    requestedProjects.length
+      ? prisma.project.findMany({
+          where: { ngoId, id: { in: requestedProjects } },
+          select: { id: true },
+        })
+      : [],
+    requestedSites.length
+      ? prisma.site.findMany({
+          where: { ngoId, id: { in: requestedSites } },
+          select: { id: true, projectId: true },
+        })
+      : [],
+  ]);
+
+  if (projects.length !== requestedProjects.length) {
+    return { error: "One or more projects do not belong to this NGO." };
+  }
+  if (sites.length !== requestedSites.length) {
+    return { error: "One or more sites do not belong to this NGO." };
+  }
+
+  return {
+    assignedProjectIds: [...new Set([...requestedProjects, ...sites.map((site) => site.projectId).filter(Boolean)])],
+    assignedSiteIds: requestedSites,
+  };
+}
+
 export async function workersForAssignment(prisma, ngoId, { projectId, siteId } = {}) {
   const where = { ngoId, role: ROLES.WORKER };
   if (projectId) where.assignedProjectIds = { has: projectId };

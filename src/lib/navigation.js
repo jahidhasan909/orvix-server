@@ -122,7 +122,7 @@ export const NAVIGATION = [
         roles: R.WORKER,
         children: [
           { id: "my-attendance", label: "My Attendance", href: "/attendance/me", icon: "Calendar", roles: R.WORKER, workerDefault: true, excludeDesignations: [DESIGNATIONS.DATA_ENTRY_OFFICER] },
-          { id: "my-assignments", label: "My Projects / Sites", href: "/my-assignments", icon: "MapPin", module: MODULES.PROJECTS, roles: R.WORKER, workerDefault: true, excludeDesignations: [DESIGNATIONS.DATA_ENTRY_OFFICER] },
+          { id: "my-assignments", label: "My Projects / Sites", href: "/my-assignments", icon: "MapPin", roles: R.WORKER, workerDefault: true, excludeDesignations: [DESIGNATIONS.DATA_ENTRY_OFFICER] },
           { id: "my-leave", label: "My Leave", href: "/leave", icon: "CalendarXmark", roles: R.WORKER, workerDefault: true, excludeDesignations: [DESIGNATIONS.DATA_ENTRY_OFFICER] },
           { id: "issued", label: "Issued Resources", href: "/issued", icon: "Box", roles: R.WORKER, workerDefault: true, excludeDesignations: [DESIGNATIONS.DATA_ENTRY_OFFICER] },
           { id: "activities", label: "Assigned Activities", href: "/activities", icon: "ListCheck", module: MODULES.PROJECTS, roles: R.WORKER, designations: [DESIGNATIONS.FIELD_WORKER, DESIGNATIONS.PROJECT_WORKER], permissions: [PERMISSIONS.ACTIVITIES_VIEW] },

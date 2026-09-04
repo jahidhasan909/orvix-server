@@ -2,7 +2,7 @@ import { NextResponse } from "#shims/next-server.js";
 import { prisma } from "#lib/prisma.js";
 import { ROLES } from "#lib/navigation.js";
 import { requireNgoSession } from "#lib/require-ngo-session.js";
-import { publicProject, publicSite } from "#lib/project-site.js";
+import { asIdList, publicProject, publicSite } from "#lib/project-site.js";
 
 function jsonError(message, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -19,25 +19,29 @@ export async function GET() {
 
   if (!user) return jsonError("Worker not found.", 404);
 
-  const projectIds = user.assignedProjectIds ?? [];
-  const siteIds = user.assignedSiteIds ?? [];
+  const projectIds = asIdList(user.assignedProjectIds);
+  const siteIds = asIdList(user.assignedSiteIds);
 
-  const [projects, sites] = await Promise.all([
-    projectIds.length
-      ? prisma.project.findMany({
-          where: { ngoId: gate.ngoId, id: { in: projectIds } },
-          orderBy: { name: "asc" },
-          include: { _count: { select: { sites: true } } },
-        })
-      : [],
-    siteIds.length
-      ? prisma.site.findMany({
-          where: { ngoId: gate.ngoId, id: { in: siteIds } },
-          orderBy: { name: "asc" },
-          include: { project: { select: { id: true, name: true } } },
-        })
-      : [],
-  ]);
+  const sites = siteIds.length
+    ? await prisma.site.findMany({
+        where: { ngoId: gate.ngoId, id: { in: siteIds } },
+        orderBy: { name: "asc" },
+        include: { project: { select: { id: true, name: true } } },
+      })
+    : [];
+
+  const allProjectIds = [...new Set([
+    ...projectIds,
+    ...sites.map((site) => site.projectId).filter(Boolean),
+  ])];
+
+  const projects = allProjectIds.length
+    ? await prisma.project.findMany({
+        where: { ngoId: gate.ngoId, id: { in: allProjectIds } },
+        orderBy: { name: "asc" },
+        include: { _count: { select: { sites: true } } },
+      })
+    : [];
 
   return NextResponse.json({
     projects: projects.map((project) => publicProject(project)),

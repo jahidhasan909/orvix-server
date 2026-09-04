@@ -4,6 +4,7 @@ import { prisma } from "#lib/prisma.js";
 import { ROLES } from "#lib/navigation.js";
 import { requireNgoAdmin } from "#lib/require-ngo-admin.js";
 import { parseWorkerBody, publicWorker } from "#lib/worker-payload.js";
+import { scopedAssignmentIds } from "#lib/project-site.js";
 
 function jsonError(message, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -23,30 +24,6 @@ async function ngoAssignments(ngoId) {
   return { projects, sites };
 }
 
-async function scopedIds(ngoId, projectIds, siteIds) {
-  const [projects, sites] = await Promise.all([
-    projectIds.length
-      ? prisma.project.findMany({
-          where: { ngoId, id: { in: projectIds } },
-          select: { id: true },
-        })
-      : [],
-    siteIds.length
-      ? prisma.site.findMany({
-          where: { ngoId, id: { in: siteIds } },
-          select: { id: true },
-        })
-      : [],
-  ]);
-
-  if (projects.length !== projectIds.length) {
-    return { error: "One or more projects do not belong to this NGO." };
-  }
-  if (sites.length !== siteIds.length) {
-    return { error: "One or more sites do not belong to this NGO." };
-  }
-  return { assignedProjectIds: projectIds, assignedSiteIds: siteIds };
-}
 
 async function ownWorker(ngoId, id) {
   return prisma.user.findFirst({
@@ -78,7 +55,7 @@ export async function PATCH(request, { params }) {
   if (parsed.error) return jsonError(parsed.error);
 
   const { password, salary, ...fields } = parsed.data;
-  const scoped = await scopedIds(gate.ngoId, fields.assignedProjectIds, fields.assignedSiteIds);
+  const scoped = await scopedAssignmentIds(prisma, gate.ngoId, fields.assignedProjectIds, fields.assignedSiteIds);
   if (scoped.error) return jsonError(scoped.error);
 
   const [emailTaken, employeeTaken] = await Promise.all([
