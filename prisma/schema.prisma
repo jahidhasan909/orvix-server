@@ -186,6 +186,7 @@ model Ngo {
   stockAdjustments StockAdjustment[]
   suppliers       Supplier[]
   purchaseOrders  PurchaseOrder[]
+  purchaseOrderLines PurchaseOrderLine[]
   purchases       Purchase[]
   receivingRecords ReceivingRecord[]
   resourceRequests ResourceRequest[]
@@ -278,6 +279,7 @@ model InventoryItem {
   transactions StockTransaction[]
   adjustments  StockAdjustment[]
   receiving    ReceivingRecord[]
+  purchaseOrderLines PurchaseOrderLine[]
   requests     ResourceRequest[]
   distributions DistributionRecord[]
   transfers    StockTransfer[]
@@ -369,39 +371,73 @@ model Supplier {
   status     String   @default("active")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  receiving  ReceivingRecord[]
+  receiving      ReceivingRecord[]
+  purchaseOrders PurchaseOrder[]
+  purchases      Purchase[]
 
   @@index([ngoId])
 }
 
 model PurchaseOrder {
+  id         String   @id @default(cuid())
+  ngoId      String
+  ngo        Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  supplier   String
+  supplierId String?
+  vendor     Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  notes      String?
+  status     String   @default("open")
+  total      Decimal  @default(0) @db.Decimal(12, 2)
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lines      PurchaseOrderLine[]
+  purchases  Purchase[]
+  receiving  ReceivingRecord[]
+
+  @@index([ngoId])
+  @@index([supplierId])
+}
+
+model PurchaseOrderLine {
   id        String   @id @default(cuid())
   ngoId     String
   ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  supplier  String
-  status    String   @default("open")
-  total     Decimal  @default(0) @db.Decimal(12, 2)
-  date      DateTime @default(now())
+  orderId   String
+  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  sku       String
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(12, 2)
+  lineTotal Decimal  @db.Decimal(12, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  purchases Purchase[]
   receiving ReceivingRecord[]
 
   @@index([ngoId])
+  @@index([orderId])
+  @@index([itemId])
 }
 
 model Purchase {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  orderId   String?
-  order     PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  amount    Decimal  @default(0) @db.Decimal(12, 2)
-  status    String   @default("posted")
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  ngoId      String
+  ngo        Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  orderId    String?
+  order      PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  supplierId String?
+  vendor     Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  amount     Decimal  @default(0) @db.Decimal(12, 2)
+  status     String   @default("posted")
+  notes      String?
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now())
+  receiving  ReceivingRecord[]
 
   @@index([ngoId])
+  @@index([orderId])
+  @@index([supplierId])
 }
 
 model ReceivingRecord {
@@ -410,6 +446,10 @@ model ReceivingRecord {
   ngo        Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
   orderId    String?
   order      PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  lineId     String?
+  line       PurchaseOrderLine? @relation(fields: [lineId], references: [id], onDelete: SetNull)
+  purchaseId String?
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
   supplierId String?
   supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   itemId     String?
@@ -429,6 +469,9 @@ model ReceivingRecord {
 
   @@index([ngoId])
   @@index([itemId])
+  @@index([orderId])
+  @@index([lineId])
+  @@index([purchaseId])
 }
 
 model ResourceRequest {
@@ -520,13 +563,18 @@ model LeaveRequest {
 }
 
 model Document {
-  id        String   @id @default(cuid())
-  ngoId     String
-  ngo       Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  name      String
-  category  String?
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  ngoId       String
+  ngo         Ngo      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  name        String
+  category    String?
+  relatedType String?
+  relatedId   String?
+  url         String?
+  notes       String?
+  createdBy   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
 
   @@index([ngoId])
 }
