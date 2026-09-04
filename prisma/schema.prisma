@@ -2,11 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator nextClient {
-  provider = "prisma-client-js"
-  output   = "../../orvix/node_modules/.prisma/client"
-}
-
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")

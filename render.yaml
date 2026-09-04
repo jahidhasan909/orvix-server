@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: orvix-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npx prisma generate
+    startCommand: node index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production

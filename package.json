@@ -1,24 +1,29 @@
 {
   "name": "orvix-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "ORVIX Express API",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "sync:api": "node scripts/sync-from-frontend.mjs",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "db:migrate": "prisma migrate deploy",
+    "db:push": "prisma db push"
   },
-  "keywords": [],
-  "author": "",
+  "imports": {
+    "#lib/*": "./src/lib/*",
+    "#shims/*": "./src/shims/*"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@heroui/react": "^3.2.4",
-    "@heroui/styles": "^3.2.4",
+    "@better-auth/prisma-adapter": "^1.7.2",
     "@prisma/client": "^6.11.1",
+    "better-auth": "^1.7.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"
